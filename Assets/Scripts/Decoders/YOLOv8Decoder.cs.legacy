@@ -1,0 +1,96 @@
+using System.Collections.Generic;
+using Unity.Barracuda;
+using UnityEngine;
+using ObjectDetectionAR.Interfaces;
+using ObjectDetectionAR.Core;
+
+namespace ObjectDetectionAR.Decoders
+{
+    public class YOLOv8Decoder :
+        MonoBehaviour,
+        IDetectionDecoder
+    {
+        [SerializeField]
+        private float confidenceThreshold = 0.25f;
+
+        public List<Detection> Decode(Tensor output)
+        {
+            // Debug.Log($"Prediction0 cx={output[0, 0, 0, 0]}");
+            // Debug.Log($"Prediction0 cy={output[0, 0, 0, 1]}");
+            // Debug.Log($"Prediction0 w ={output[0, 0, 0, 2]}");
+            // Debug.Log($"Prediction0 h ={output[0, 0, 0, 3]}");
+
+            float globalBestScore = 0f;
+
+            int globalBestPrediction = -1;
+
+            int globalBestClass = -1;
+
+            for (int i = 0; i < 8400; i++)
+            {
+                float bestScore = 0;
+
+                int bestClass = 0;
+
+                for (int c = 4; c < 84; c++)
+                {
+                    float score = output[0, 0, i, c];
+
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestClass = c - 4;
+                    }
+                }
+
+                // 👇 Use the threshold HERE — skip weak predictions entirely
+                if (bestScore < confidenceThreshold)
+                    continue;
+
+                if (bestScore > globalBestScore)
+                {
+                    globalBestScore = bestScore;
+                    globalBestPrediction = i;
+                    globalBestClass = bestClass;
+                }
+            }
+
+            float cx = output[0, 0, globalBestPrediction, 0];
+            float cy = output[0, 0, globalBestPrediction, 1];
+            float w = output[0, 0, globalBestPrediction, 2];
+            float h = output[0, 0, globalBestPrediction, 3];
+
+            // Debug.Log($"Prediction = {globalBestPrediction}");
+            // Debug.Log($"Class      = {globalBestClass}");
+            // Debug.Log($"Score      = {globalBestScore}");
+
+            // Debug.Log($"cx = {cx}");
+            // Debug.Log($"cy = {cy}");
+            // Debug.Log($"w  = {w}");
+            // Debug.Log($"h  = {h}");
+
+            float x = cx - w * 0.5f;
+            float y = cy - h * 0.5f;
+
+            Rect rect = new Rect(
+                x,
+                y,
+                w,
+                h);
+
+            // Debug.Log($"Rect = {rect}");
+
+            var detections = new List<Detection>();
+
+            detections.Add(
+                new Detection(
+                    globalBestClass,
+                    globalBestScore,
+                    rect));
+
+            // Debug.Log($"Detection = {detections[0]}");
+
+            return detections;
+        }
+    }
+}
