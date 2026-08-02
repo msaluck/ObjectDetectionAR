@@ -1,39 +1,40 @@
-using System.Collections.Generic;
+using System.Diagnostics;
+using System;
 using Unity.Barracuda;
 using UnityEngine;
 
 using ObjectDetectionAR.Interfaces;
+using ObjectDetectionAR.UI;
 
 namespace ObjectDetectionAR.Core
 {
     public class DetectionRunner : MonoBehaviour
     {
         [Header("Pipeline")]
-
         [SerializeField]
         private MonoBehaviour imageSourceBehaviour;
-
         [SerializeField]
         private MonoBehaviour preprocessorBehaviour;
-
         [SerializeField]
         private MonoBehaviour modelRunnerBehaviour;
+        [Serializable]
+        private class DecoderConfig
+        {
+            public string ModelName;
 
+            public MonoBehaviour DecoderBehaviour;
+        }
+
+        [Header("Decoders")]
         [SerializeField]
-        private MonoBehaviour decoderBehaviour;
-
+        private DecoderConfig[] decoders;
         private IImageSource imageSource;
-
         private IImagePreprocessor preprocessor;
-
         private IModelRunner modelRunner;
-
-        private IDetectionDecoder decoder;
         private readonly DetectorRegistry registry = new DetectorRegistry();
-        [SerializeField] private string currentModel = "YOLOv8n";
+        [SerializeField] private ModelSelector modelSelector;
         [SerializeField] private ModelRegistry modelRegistry;
         private string loadedModelName;
-
         private void InitializePipeline()
         {
             imageSource = imageSourceBehaviour as IImageSource;
@@ -41,65 +42,134 @@ namespace ObjectDetectionAR.Core
             preprocessor = preprocessorBehaviour as IImagePreprocessor;
 
             modelRunner = modelRunnerBehaviour as IModelRunner;
-
-            decoder = decoderBehaviour as IDetectionDecoder;
         }
         private void RegisterDetectors()
         {
-            registry.Register("YOLOv8n", decoder);
+            if (decoders == null || decoders.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "No decoders are configured.");
+            }
+                
+            foreach (var config in decoders)
+            {
+                if (config == null)
+                {
+                    throw new InvalidOperationException(
+                        "Decoder configuration is null.");
+                }
+
+                if (string.IsNullOrWhiteSpace(config.ModelName))
+                {
+                    throw new InvalidOperationException(
+                        "Decoder configuration has an empty model name.");
+                }
+                
+                if (config.DecoderBehaviour is not IDetectionDecoder decoder)
+                {
+                    throw new InvalidOperationException(
+                        $"Decoder for model '{config.ModelName}' " +
+                        "does not implement IDetectionDecoder.");
+                }
+
+                registry.Register(config.ModelName, decoder);
+            }
         }
         private void Awake()
         {
             InitializePipeline();
             RegisterDetectors();
         }
+        private string ResolveCurrentModelName()
+        {
+            string currentModel = modelSelector != null ? modelSelector.CurrentModel : null;
 
+            if (!string.IsNullOrWhiteSpace(currentModel))
+                return currentModel;
+
+            var registeredModels = modelRegistry?.RegisteredModels;
+
+            if (registeredModels == null || registeredModels.Count == 0)
+                throw new InvalidOperationException("No model is available. Ensure ModelRegistry is configured with at least one model.");
+
+            // Handles frame-order races where ModelSelector.Start has not run yet.
+            return registeredModels[0];
+        }
+        public IDetectionDecoder GetDecoder(string modelName) =>
+            registry.Get(modelName);
+
+        public void SetModel(string modelName)
+        {
+            if (loadedModelName == modelName)
+                return;
+            if (!registry.Contains(modelName))
+            {
+                throw new InvalidOperationException(
+                    $"No decoder is configured/registered for model '{modelName}'.");
+            }
+            var model = modelRegistry.Get(modelName);
+
+            modelRunner.LoadModel(modelName, model);
+
+            loadedModelName = modelName;
+        }
         public DetectionResult Run()
         {
             DetectionResult result = new DetectionResult();
-            // TODO: result.ModelName = modelRunner.ModelName;
-            result.ModelName = currentModel;
 
-            var model = modelRegistry.Get(result.ModelName);
-            
-            modelRunner.LoadModel(model);
+            if (loadedModelName == null)
+                SetModel(ResolveCurrentModelName());
+
+            result.ModelName = loadedModelName;
 
             Texture image = imageSource.GetFrame();
-            
+
+            var timer = Stopwatch.StartNew();
+
             Tensor input = preprocessor.Preprocess(image);
-            
+
+            timer.Stop();
+
+            result.PreprocessTimeMs = (float)timer.Elapsed.TotalMilliseconds;
+
+            timer.Restart();
+
             Tensor output = modelRunner.Execute(input);
-            
-            result.ModelWidth = 640;
-            
-            result.ModelHeight = 640;
-            
+
+            timer.Stop();
+
+            result.InferenceTimeMs = (float)timer.Elapsed.TotalMilliseconds;
+
+            result.ModelWidth = input.width;
+
+            result.ModelHeight = input.height;
+
             result.SourceImage = image;
-            
+
             result.ImageWidth = image.width;
-            
+
             result.ImageHeight = image.height;
-            
+
+            timer.Restart();
+
             var detector = registry.Get(result.ModelName);
-            
+
             result.Detections = detector.Decode(output);
-            
-            result.PreprocessTimeMs = 0;
-            
-            result.InferenceTimeMs = 0;
-            
-            result.DecodeTimeMs = 0;
-            
+
+            timer.Stop();
+
+            result.DecodeTimeMs = (float)timer.Elapsed.TotalMilliseconds;
+
             result.BackendName = modelRunner.BackendName;
-            
+
             Utils.Logger.Log($"DetectionRunner.Run() : {result.Detections.Count} detections");
-            
+
             Utils.Logger.Log($"DetectionRunner.Run() : {result}");
-            
+
             input.Dispose();
-            
+
             output.Dispose();
-            
+
             return result;
         }
     }

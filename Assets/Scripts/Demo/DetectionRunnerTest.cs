@@ -10,14 +10,14 @@ public class DetectionRunnerTest : MonoBehaviour
     void Start()
     {
         // var detections = runner.Run();
-        DetectionResult result = runner.Run();
+        // DetectionResult result = runner.Run();
 
         // Debug.Log($"Detections : {result.Detections.Count}");
         // Debug.Log(result);
 
-        renderer.Render(result);
+        // renderer.Render(result);
 
-        foreach (var detection in result.Detections)
+        // foreach (var detection in result.Detections)
         {
             // Debug.Log(detection);
         }

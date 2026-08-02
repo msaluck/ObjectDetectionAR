@@ -3,15 +3,19 @@ using Unity.Barracuda;
 namespace ObjectDetectionAR.Interfaces
 {
     public interface IModelRunner
-    {
-        void LoadModel(NNModel model);
+{
+    string ModelName { get; }
 
-        Tensor Execute(Tensor input);
+    string BackendName { get; }
 
-        void Dispose();
+    bool IsLoaded { get; }
 
-        bool IsLoaded { get; }
+    void LoadModel(
+        string modelName,
+        NNModel model);
 
-        string BackendName { get; }
-    }
+    Tensor Execute(Tensor input);
+
+    void Dispose();
+}
 }

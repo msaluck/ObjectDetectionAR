@@ -6,6 +6,10 @@ namespace ObjectDetectionAR.Interfaces
 {
     public interface IDetectionDecoder
     {
+        float ConfidenceThreshold { get; }
+
+        float NmsThreshold { get; }
+
         List<Detection> Decode(Tensor output);
     }
 }

@@ -1,9 +1,9 @@
 ﻿<Solution>
+  <Project Path="UnityEngine.UI.csproj" />
   <Project Path="UnityEngine.SpatialTracking.csproj" />
   <Project Path="Unity.XR.CoreUtils.csproj" />
   <Project Path="Unity.Barracuda.csproj" />
   <Project Path="UnityEngine.TestRunner.csproj" />
-  <Project Path="UnityEngine.UI.csproj" />
   <Project Path="UnityEngine.XR.LegacyInputHelpers.csproj" />
   <Project Path="Unity.Mathematics.csproj" />
   <Project Path="Unity.XR.ARFoundation.csproj" />

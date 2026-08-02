@@ -30,13 +30,21 @@ namespace ObjectDetectionAR.Core
         public float InferenceTimeMs;
         public float DecodeTimeMs;
         public string BackendName;
-        public float FPS;
         public long PeakMemory;
 
         public int DetectionCount
         {
             get { return Detections.Count; }
         }
+        public float TotalTimeMs =>
+    PreprocessTimeMs +
+    InferenceTimeMs +
+    DecodeTimeMs;
+
+        public float FPS =>
+            TotalTimeMs > 0
+                ? 1000f / TotalTimeMs
+                : 0f;
 
         public override string ToString()
         {
@@ -50,7 +58,10 @@ namespace ObjectDetectionAR.Core
                 Detections   : {DetectionCount}
                 Preprocess   : {PreprocessTimeMs:F2} ms
                 Inference    : {InferenceTimeMs:F2} ms
-                Decode       : {DecodeTimeMs:F2} ms";
+                Decode       : {DecodeTimeMs:F2} ms
+                --------------------------------
+                Total        : {TotalTimeMs:F2} ms
+                FPS          : {FPS:F2}";
         }
     }
 }

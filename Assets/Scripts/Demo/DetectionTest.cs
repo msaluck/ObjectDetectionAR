@@ -7,9 +7,9 @@ public class DetectionTest : MonoBehaviour
     {
         Detection d = new Detection
         {
+            BoundingBox = new Rect(120, 60, 220, 450),
             ClassId = 0,
             Confidence = 0.92f,
-            BoundingBox = new Rect(120, 60, 220, 450)
         };
 
         // Debug.Log(d);

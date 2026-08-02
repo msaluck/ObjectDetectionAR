@@ -43,5 +43,10 @@ namespace ObjectDetectionAR.Core
                 return new List<string>(registry.Keys);
             }
         }
+
+        public IReadOnlyList<string> GetModelNames()
+        {
+            return RegisteredModels;
+        }
     }
 }

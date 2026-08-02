@@ -8,6 +8,10 @@ namespace ObjectDetectionAR.ModelRunner
     {
         [SerializeField] private NNModel modelAsset;
 
+        [SerializeField] private string modelName;
+
+        public string ModelName => modelName;
+
         private Model runtimeModel;
 
         private IWorker worker;
@@ -16,14 +20,15 @@ namespace ObjectDetectionAR.ModelRunner
 
         private void Awake()
         {
-            LoadModel(modelAsset);
+            LoadModel(modelName, modelAsset);
         }
 
-        public void LoadModel(NNModel model)
+        public void LoadModel(string name, NNModel model)
         {
             if (model == null)
                 throw new System.ArgumentNullException(nameof(model));
             Dispose();
+            modelName = name;
             runtimeModel = ModelLoader.Load(model);
 
             worker = WorkerFactory.CreateWorker(

@@ -68,18 +68,13 @@ namespace ObjectDetectionAR.Core
                 $"{BoundingBox.width:F1}, {BoundingBox.height:F1}]";
         }
 
-        public Detection()
+        public Detection(Rect boundingBox, int classId, float confidence)
         {
-        }
-
-        public Detection(
-            int classId,
-            float confidence,
-            Rect boundingBox)
-        {
+            BoundingBox = boundingBox;
             ClassId = classId;
             Confidence = confidence;
-            BoundingBox = boundingBox;
         }
+
+        public Detection(){}
     }
 }
